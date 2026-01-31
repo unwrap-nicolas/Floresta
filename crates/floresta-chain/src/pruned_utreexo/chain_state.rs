@@ -1324,6 +1324,9 @@ impl<PersistedState: ChainStore> UpdatableChainstate for ChainState<PersistedSta
 
         #[cfg(feature = "metrics")]
         metrics::get_metrics().block_height.set(height.into());
+        
+        #[cfg(feature = "metrics")]
+        metrics::get_metrics().difficulty.set(block.header.difficulty(self.chain_params()) as f64);
 
         if !self.is_in_ibd() || height % 100_000 == 0 {
             self.flush()?;

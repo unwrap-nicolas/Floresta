@@ -341,6 +341,10 @@ where
 
         #[cfg(feature = "metrics")]
         self.update_peer_metrics();
+
+        #[cfg(feature = "metrics")]
+        self.update_utreexo_peer_metrics();
+
         Ok(())
     }
 
@@ -478,6 +482,9 @@ where
         #[cfg(feature = "metrics")]
         self.update_peer_metrics();
 
+        #[cfg(feature = "metrics")]
+        self.update_utreexo_peer_metrics();
+
         Ok(())
     }
 
@@ -503,6 +510,10 @@ where
             warn!("banning peer {peer_id} for misbehaving");
             peer.channel.send(NodeRequest::Shutdown)?;
             peer.state = PeerStatus::Banned;
+
+            #[cfg(feature = "metrics")]
+            self.increment_banned_peer_metrics();
+
             return Ok(());
         }
 
@@ -721,6 +732,27 @@ where
 
         let metrics = get_metrics();
         metrics.peer_count.set(self.peer_ids.len() as f64);
+    }
+
+    #[cfg(feature = "metrics")]
+    pub(crate) fn update_utreexo_peer_metrics(&self) {
+        use metrics::get_metrics;
+
+        let metrics = get_metrics();
+        let count = self
+            .peer_by_service
+            .get(&service_flags::UTREEXO.into())
+            .map(|peers| peers.len())
+            .unwrap_or(0);
+
+        metrics.utreexo_peer_count.set(count as f64);
+    }
+
+    #[cfg(feature = "metrics")]
+    pub(crate) fn increment_banned_peer_metrics(&self) {
+        use metrics::get_metrics;
+        let metrics = get_metrics();
+        metrics.banned_peer_count.inc();
     }
 
     pub(crate) fn has_utreexo_peers(&self) -> bool {
