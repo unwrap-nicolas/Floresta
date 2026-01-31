@@ -21,6 +21,7 @@ pub struct AppMetrics {
     pub difficulty: Gauge<f64, AtomicU64>,
     pub banned_peer_count: Counter<f64, AtomicU64>,
     pub utreexo_peer_count: Gauge<f64, AtomicU64>,
+    pub block_interval: Gauge<f64, AtomicU64>,
 }
 
 impl AppMetrics {
@@ -34,6 +35,7 @@ impl AppMetrics {
         let message_times = Histogram::new([0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0].into_iter());
         let difficulty = Gauge::<f64, AtomicU64>::default();
         let banned_peer_count = Counter::<f64, AtomicU64>::default();
+        let block_interval = Gauge::<f64, AtomicU64>::default();
 
         registry.register("block_height", "Current block height", block_height.clone());
         registry.register(
@@ -78,6 +80,12 @@ impl AppMetrics {
             utreexo_peer_count.clone(),
         );
 
+        registry.register(
+            "block_interval",
+            "Block interval in seconds",
+            block_interval.clone(),
+        );
+
         Self {
             registry,
             block_height,
@@ -88,6 +96,7 @@ impl AppMetrics {
             utreexo_peer_count,
             difficulty,
             banned_peer_count,
+            block_interval
         }
     }
 
