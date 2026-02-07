@@ -1,40 +1,4 @@
 {
-  "__inputs": [
-    {
-      "name": "DS_PROMETHEUS",
-      "label": "Prometheus",
-      "description": "Fonte de dados Prometheus",
-      "type": "datasource",
-      "pluginId": "prometheus",
-      "pluginName": "Prometheus"
-    }
-  ],
-  "__requires": [
-    {
-      "type": "panel",
-      "id": "timeseries",
-      "name": "Time series",
-      "version": "9.0.0"
-    },
-    {
-      "type": "panel",
-      "id": "stat",
-      "name": "Stat",
-      "version": "9.0.0"
-    },
-    {
-      "type": "panel",
-      "id": "heatmap",
-      "name": "Heatmap",
-      "version": "9.0.0"
-    },
-    {
-      "type": "datasource",
-      "id": "prometheus",
-      "name": "Prometheus",
-      "version": "1.0.0"
-    }
-  ],
   "annotations": {
     "list": [
       {
@@ -58,7 +22,7 @@
       "type": "stat",
       "title": "Block Height",
       "id": 1,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "prometheus",
       "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -80,7 +44,7 @@
       "type": "stat",
       "title": "Peer Count",
       "id": 2,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "prometheus",
       "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -102,7 +66,7 @@
       "type": "stat",
       "title": "Avg Block Processing Time (s)",
       "id": 3,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "prometheus",
       "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -124,7 +88,7 @@
       "type": "stat",
       "title": "Memory Usage (GB)",
       "id": 4,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "prometheus",
       "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
       "options": {
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
@@ -146,7 +110,7 @@
       "type": "timeseries",
       "title": "Block Height over time",
       "id": 5,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "prometheus",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
       "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 }, "overrides": [] },
       "options": {
@@ -161,7 +125,7 @@
       "type": "timeseries",
       "title": "Peers over time",
       "id": 6,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "prometheus",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
       "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 }, "overrides": [] },
       "options": {
@@ -176,7 +140,7 @@
       "type": "timeseries",
       "title": "Message latency quantiles (s)",
       "id": 7,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "prometheus",
       "gridPos": { "h": 9, "w": 12, "x": 0, "y": 14 },
       "fieldConfig": { "defaults": { "unit": "s", "decimals": 2 }, "overrides": [] },
       "options": {
@@ -205,7 +169,7 @@
       "type": "timeseries",
       "title": "Message rate (responses/s)",
       "id": 8,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "prometheus",
       "gridPos": { "h": 9, "w": 12, "x": 12, "y": 14 },
       "fieldConfig": { "defaults": { "unit": "reqps", "decimals": 2 }, "overrides": [] },
       "options": {
@@ -220,7 +184,7 @@
       "type": "heatmap",
       "title": "Message latency heatmap (s)",
       "id": 9,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "prometheus",
       "gridPos": { "h": 10, "w": 24, "x": 0, "y": 23 },
       "fieldConfig": { "defaults": {}, "overrides": [] },
       "options": {
@@ -237,7 +201,7 @@
       "type": "timeseries",
       "title": "Avg block processing time (s)",
       "id": 10,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "prometheus",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 33 },
       "fieldConfig": { "defaults": { "unit": "s", "decimals": 2 }, "overrides": [] },
       "options": {
@@ -252,7 +216,7 @@
       "type": "timeseries",
       "title": "System memory usage (GB)",
       "id": 11,
-      "datasource": "${DS_PROMETHEUS}",
+      "datasource": "prometheus",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 33 },
       "fieldConfig": { "defaults": { "unit": "decgbytes", "decimals": 2 }, "overrides": [] },
       "options": {
@@ -273,7 +237,7 @@
       {
         "name": "job",
         "type": "query",
-        "datasource": "${DS_PROMETHEUS}",
+        "datasource": "prometheus",
         "refresh": 2,
         "hide": 2,
         "query": "label_values(block_height, job)",
@@ -284,7 +248,7 @@
       {
         "name": "instance",
         "type": "query",
-        "datasource": "${DS_PROMETHEUS}",
+        "datasource": "prometheus",
         "refresh": 2,
         "query": "label_values(block_height, instance)",
         "includeAll": true,
