@@ -35,7 +35,6 @@ use rcgen::BasicConstraints;
 use rcgen::CertificateParams;
 use rcgen::IsCa;
 use rcgen::KeyPair;
-use rustreexo::accumulator::pollard::Pollard;
 use tokio::net::TcpListener;
 use tokio::sync::RwLock;
 use tokio::task;
@@ -61,6 +60,11 @@ use crate::json_rpc;
 use crate::wallet_input::InitialWalletSetup;
 #[cfg(feature = "zmq-server")]
 use crate::zmq::ZMQServer;
+
+/// The default maximum size of the mempool in bytes.
+///
+/// This is the same default as Bitcoin Core.
+const DEFAULT_MEMPOOL_MAX_SIZE_BYTES: usize = 300_000_000; // 300 MiB
 
 #[derive(Clone)]
 /// General configuration for the floresta daemon.
@@ -428,14 +432,15 @@ impl Florestad {
             ..Default::default()
         };
 
-        let acc = Pollard::new();
         let kill_signal = self.stop_signal.clone();
 
         // Chain Provider (p2p)
         let chain_provider = UtreexoNode::<_, RunningNode>::new(
             config,
             blockchain_state.clone(),
-            Arc::new(tokio::sync::Mutex::new(Mempool::new(acc, 300_000_000))),
+            Arc::new(tokio::sync::Mutex::new(Mempool::new(
+                DEFAULT_MEMPOOL_MAX_SIZE_BYTES,
+            ))),
             cfilters.clone(),
             kill_signal.clone(),
             AddressMan::default(),
@@ -520,7 +525,7 @@ impl Florestad {
 
         task::spawn(client_accept_loop(
             non_tls_listener,
-            electrum_server.message_transmitter.clone(),
+            electrum_server.get_notifier(),
             None,
         ));
         info!("Electrum Server is running at {electrum_addr}");
@@ -585,7 +590,7 @@ impl Florestad {
             let tls_acceptor: TlsAcceptor = TlsAcceptor::from(tls_config);
             task::spawn(client_accept_loop(
                 tls_listener,
-                electrum_server.message_transmitter.clone(),
+                electrum_server.get_notifier(),
                 Some(tls_acceptor),
             ));
             info!("Electrum TLS Server is running at {electrum_addr_tls}");

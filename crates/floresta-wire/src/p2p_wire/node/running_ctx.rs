@@ -358,11 +358,11 @@ where
                     let Some(notification) = msg else {
                         break;
                     };
-                    try_and_log!(self.handle_notification(notification));
+                    try_and_log!(self.handle_notification(notification).await);
 
                     // Drain all queued messages
                     while let Ok(notification) = self.node_rx.try_recv() {
-                        try_and_log!(self.handle_notification(notification));
+                        try_and_log!(self.handle_notification(notification).await);
                     }
                 }
             }
@@ -428,11 +428,7 @@ where
             self.last_get_address_request => self.ask_for_addresses(),
             RunningNode::ASK_FOR_PEERS_INTERVAL,
         );
-        // Try broadcast transactions
-        periodic_job!(
-            self.last_broadcast => self.handle_broadcast().await,
-            RunningNode::BROADCAST_DELAY,
-        );
+
         // Send our addresses to our peers
         periodic_job!(
             self.last_send_addresses => self.send_addresses(),
@@ -503,7 +499,7 @@ where
         let stop_hash = self.chain.get_block_hash(stop)?;
         self.last_filter = stop_hash;
 
-        let peer = self.send_to_fastest_peer(
+        let peer = self.send_to_fast_peer(
             NodeRequest::GetFilter((stop_hash, height + 1)),
             ServiceFlags::COMPACT_FILTERS,
         )?;
@@ -603,18 +599,21 @@ where
         Ok(())
     }
 
-    fn handle_notification(&mut self, notification: NodeNotification) -> Result<(), WireError> {
+    async fn handle_notification(
+        &mut self,
+        notification: NodeNotification,
+    ) -> Result<(), WireError> {
         match notification {
             NodeNotification::FromUser(request, responder) => {
-                self.perform_user_request(request, responder);
+                self.perform_user_request(request, responder).await;
             }
 
             NodeNotification::DnsSeedAddresses(addresses) => {
                 self.address_man.push_addresses(&addresses);
             }
 
-            NodeNotification::FromPeer(peer, message) => {
-                self.register_message_time(&message, peer);
+            NodeNotification::FromPeer(peer, message, time) => {
+                self.register_message_time(&message, peer, time);
 
                 let Some(unhandled) = self.handle_peer_msg_common(message, peer)? else {
                     return Ok(());
