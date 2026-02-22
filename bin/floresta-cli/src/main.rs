@@ -301,7 +301,12 @@ pub enum Methods {
     ///
     /// Result:
     /// "str"    (string) A string with the content 'Floresta stopping'
-    #[command(name = "stop")]
+    #[command(
+        name = "stop",
+        about = "Request a graceful shutdown of Floresta",
+        long_about = Some(include_str!("../../../doc/rpc/stop.md")),
+        disable_help_subcommand = true
+    )]
     Stop,
 
     #[doc = include_str!("../../../doc/rpc/addnode.md")]
