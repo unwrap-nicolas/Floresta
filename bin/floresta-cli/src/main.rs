@@ -361,7 +361,12 @@ pub enum Methods {
     ///   ],
     ///   "logpath" : "str"        (string) The complete file path to the debug log
     /// }
-    #[command(name = "getrpcinfo")]
+    #[command(
+        name = "getrpcinfo",
+        about = "Returns information about the RPC server",
+        long_about = Some(include_str!("../../../doc/rpc/getrpcinfo.md")),
+        disable_help_subcommand = true
+    )]
     GetRpcInfo,
 
     /// Returns for how long the node has been running, in seconds
