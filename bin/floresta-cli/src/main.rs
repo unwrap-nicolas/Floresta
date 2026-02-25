@@ -10,7 +10,6 @@ use clap::Subcommand;
 use floresta_rpc::jsonrpc_client::Client;
 use floresta_rpc::rpc::FlorestaRPC;
 use floresta_rpc::rpc_types::AddNodeCommand;
-use floresta_rpc::rpc_types::GetBlockRes;
 use floresta_rpc::rpc_types::RescanConfidence;
 
 // Main function that runs the CLI application
@@ -92,12 +91,7 @@ fn do_request(cmd: &Cli, client: Client) -> anyhow::Result<String> {
         }
         Methods::GetRoots => serde_json::to_string_pretty(&client.get_roots()?)?,
         Methods::GetBlock { hash, verbosity } => {
-            let block = client.get_block(hash, verbosity)?;
-
-            match block {
-                GetBlockRes::One(block) => serde_json::to_string_pretty(&block)?,
-                GetBlockRes::Zero(block) => serde_json::to_string_pretty(&block)?,
-            }
+            serde_json::to_string_pretty(&client.get_block(hash, verbosity)?)?
         }
         Methods::GetPeerInfo => serde_json::to_string_pretty(&client.get_peer_info()?)?,
         Methods::Stop => serde_json::to_string_pretty(&client.stop()?)?,
@@ -165,12 +159,22 @@ pub struct Cli {
 
 #[derive(Debug, Clone, Subcommand)]
 pub enum Methods {
-    /// Returns information about the current state of the blockchain
-    #[command(name = "getblockchaininfo")]
+    #[doc = include_str!("../../../doc/rpc/getblockchaininfo.md")]
+    #[command(
+        name = "getblockchaininfo",
+        about = "Returns an object containing various state info regarding blockchain processing.",
+        long_about = Some(include_str!("../../../doc/rpc/getblockchaininfo.md")),
+        disable_help_subcommand = true
+    )]
     GetBlockchainInfo,
 
-    /// Returns the hash of the block associated with height
-    #[command(name = "getblockhash")]
+    #[doc = include_str!("../../../doc/rpc/getblockhash.md")]
+    #[command(
+        name = "getblockhash",
+        about = "Returns the hash of the block at the given height.",
+        long_about = Some(include_str!("../../../doc/rpc/getblockhash.md")),
+        disable_help_subcommand = true
+    )]
     GetBlockHash { height: u32 },
 
     #[doc = include_str!("../../../doc/rpc/getbestblockhash.md")]
@@ -243,7 +247,13 @@ pub enum Methods {
     },
 
     /// Submits a raw transaction to the network
-    #[command(name = "sendrawtransaction")]
+    #[doc = include_str!("../../../doc/rpc/sendrawtransaction.md")]
+    #[command(
+        name = "sendrawtransaction",
+        about = "Broadcast a serialized transaction to the P2P network",
+        long_about = Some(include_str!("../../../doc/rpc/sendrawtransaction.md")),
+        disable_help_subcommand = true
+    )]
     SendRawTransaction { tx: String },
 
     /// Returns the block header for the given block hash
@@ -291,7 +301,12 @@ pub enum Methods {
     ///
     /// Result:
     /// "str"    (string) A string with the content 'Floresta stopping'
-    #[command(name = "stop")]
+    #[command(
+        name = "stop",
+        about = "Request a graceful shutdown of Floresta",
+        long_about = Some(include_str!("../../../doc/rpc/stop.md")),
+        disable_help_subcommand = true
+    )]
     Stop,
 
     #[doc = include_str!("../../../doc/rpc/addnode.md")]
@@ -330,7 +345,13 @@ pub enum Methods {
     /// Returns statistics about Floresta's memory usage.
     ///
     /// Returns zeroed values for all runtimes that are not *-gnu or MacOS.
-    #[command(name = "getmemoryinfo")]
+    #[doc = include_str!("../../../doc/rpc/getmemoryinfo.md")]
+    #[command(
+        name = "getmemoryinfo",
+        about = "Returns statistics about Floresta's memory usage",
+        long_about = Some(include_str!("../../../doc/rpc/getmemoryinfo.md")),
+        disable_help_subcommand = true
+    )]
     GetMemoryInfo { mode: Option<String> },
 
     /// Returns information about the RPC server
@@ -345,7 +366,12 @@ pub enum Methods {
     ///   ],
     ///   "logpath" : "str"        (string) The complete file path to the debug log
     /// }
-    #[command(name = "getrpcinfo")]
+    #[command(
+        name = "getrpcinfo",
+        about = "Returns information about the RPC server",
+        long_about = Some(include_str!("../../../doc/rpc/getrpcinfo.md")),
+        disable_help_subcommand = true
+    )]
     GetRpcInfo,
 
     /// Returns for how long the node has been running, in seconds

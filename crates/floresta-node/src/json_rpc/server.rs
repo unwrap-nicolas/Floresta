@@ -4,8 +4,12 @@ use std::slice;
 use std::sync::Arc;
 use std::time::Instant;
 
+use axum::body::Body;
+use axum::body::Bytes;
 use axum::extract::State;
 use axum::http::Method;
+use axum::http::Response;
+use axum::http::StatusCode;
 use axum::routing::post;
 use axum::Json;
 use axum::Router;
@@ -18,6 +22,7 @@ use bitcoin::Address;
 use bitcoin::BlockHash;
 use bitcoin::Network;
 use bitcoin::ScriptBuf;
+use bitcoin::Transaction;
 use bitcoin::TxIn;
 use bitcoin::TxOut;
 use bitcoin::Txid;
@@ -37,7 +42,6 @@ use tracing::debug;
 use tracing::error;
 use tracing::info;
 
-use super::res::GetBlockRes;
 use super::res::JsonRpcError;
 use super::res::RawTxJson;
 use super::res::RpcError;
@@ -186,12 +190,16 @@ impl<Blockchain: RpcChain> RpcImpl<Blockchain> {
         Ok(true)
     }
 
-    fn send_raw_transaction(&self, tx: String) -> Result<Txid> {
+    async fn send_raw_transaction(&self, tx: String) -> Result<Txid> {
         let tx_hex = Vec::from_hex(&tx).map_err(|_| JsonRpcError::InvalidHex)?;
-        let tx = deserialize(&tx_hex).map_err(|e| JsonRpcError::Decode(e.to_string()))?;
-        self.chain.broadcast(&tx).map_err(|_| JsonRpcError::Chain)?;
+        let tx: Transaction =
+            deserialize(&tx_hex).map_err(|e| JsonRpcError::Decode(e.to_string()))?;
 
-        Ok(tx.compute_txid())
+        Ok(self
+            .node
+            .broadcast_transaction(tx)
+            .await
+            .map_err(|e| JsonRpcError::Node(e.to_string()))??)
     }
 }
 
@@ -230,25 +238,13 @@ async fn handle_json_rpc_request(
         "getblock" => {
             let hash = get_hash(&params, 0, "block_hash")?;
             // Default value in case of missing parameter is 1
-            let verbosity = get_optional_field(&params, 1, "verbosity", get_numeric)?.unwrap_or(1);
+            let verbosity: u8 =
+                get_optional_field(&params, 1, "verbosity", get_numeric)?.unwrap_or(1);
 
-            match verbosity {
-                0 => {
-                    let block = state.get_block_serialized(hash).await?;
-
-                    let block = GetBlockRes::Zero(block);
-                    Ok(serde_json::to_value(block).unwrap())
-                }
-
-                1 => {
-                    let block = state.get_block(hash).await?;
-
-                    let block = GetBlockRes::One(block.into());
-                    Ok(serde_json::to_value(block).unwrap())
-                }
-
-                _ => Err(JsonRpcError::InvalidVerbosityLevel),
-            }
+            state
+                .get_block(hash, verbosity)
+                .await
+                .map(|v| serde_json::to_value(v).expect("GetBlockRes implements serde"))
         }
 
         "getblockchaininfo" => state
@@ -261,10 +257,10 @@ async fn handle_json_rpc_request(
 
         "getblockfrompeer" => {
             let hash = get_hash(&params, 0, "block_hash")?;
-            state
-                .get_block(hash)
-                .await
-                .map(|v| serde_json::to_value(v).unwrap())
+
+            state.get_block(hash, 0).await?;
+
+            Ok(Value::Null)
         }
 
         "getblockhash" => {
@@ -420,6 +416,7 @@ async fn handle_json_rpc_request(
             let tx = get_string(&params, 0, "hex")?;
             state
                 .send_raw_transaction(tx)
+                .await
                 .map(|v| serde_json::to_value(v).unwrap())
         }
 
@@ -455,6 +452,7 @@ fn get_http_error_code(err: &JsonRpcError) -> u16 {
         | JsonRpcError::InvalidParameterType(_)
         | JsonRpcError::MissingParameter(_)
         | JsonRpcError::ChainWorkOverflow
+        | JsonRpcError::MempoolAccept(_)
         | JsonRpcError::Wallet(_) => 400,
 
         // idunnolol
@@ -494,7 +492,8 @@ fn get_json_rpc_error_code(err: &JsonRpcError) -> i32 {
         | JsonRpcError::InvalidRescanVal
         | JsonRpcError::NoAddressesToRescan
         | JsonRpcError::ChainWorkOverflow
-        | JsonRpcError::Wallet(_) => -32600,
+        | JsonRpcError::Wallet(_)
+        | JsonRpcError::MempoolAccept(_) => -32600,
 
         // server error
         JsonRpcError::InInitialBlockDownload
@@ -507,8 +506,28 @@ fn get_json_rpc_error_code(err: &JsonRpcError) -> i32 {
 
 async fn json_rpc_request(
     State(state): State<Arc<RpcImpl<impl RpcChain>>>,
-    Json(req): Json<RpcRequest>,
-) -> axum::http::Response<axum::body::Body> {
+    body: Bytes,
+) -> Response<Body> {
+    let req: RpcRequest = match serde_json::from_slice(&body) {
+        Ok(req) => req,
+        Err(e) => {
+            let error = RpcError {
+                code: -32700,
+                message: format!("Parse error: {e}"),
+                data: None,
+            };
+            let body = json!({
+                "error": error,
+                "id": Value::Null,
+            });
+            return Response::builder()
+                .status(StatusCode::BAD_REQUEST)
+                .header("Content-Type", "application/json")
+                .body(Body::from(serde_json::to_vec(&body).unwrap()))
+                .unwrap();
+        }
+    };
+
     debug!("Received JSON-RPC request: {req:?}");
 
     let id = req.id.clone();
